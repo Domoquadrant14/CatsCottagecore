@@ -33,6 +33,10 @@ public class CameraMovement : MonoBehaviour
 
     Vector3 camPos;
 
+    private bool hasPanned;
+    private bool isPanning;
+    private bool hasZoomedRecently;
+
 
     private void Awake()
     {
@@ -65,14 +69,21 @@ public class CameraMovement : MonoBehaviour
     {
 
         if (Input.GetMouseButtonDown(0))
+        {
             dragOrigin = cam.ScreenToWorldPoint(Input.mousePosition);
+            hasPanned = true;
+        }
 
+        isPanning = false;
         if (Input.GetMouseButton(0))
         {
+            isPanning = true;  
             Vector3 difference = dragOrigin - cam.ScreenToWorldPoint(Input.mousePosition);
             //print("origin " + dragOrigin + " newPosition " + cam.ScreenToWorldPoint(Input.mousePosition) + " =difference" + difference);
 
-            cam.transform.position = ClampCamera(cam.transform.position + difference);  
+            cam.transform.position = ClampCamera(cam.transform.position + difference);
+
+          
 
         }
 
@@ -94,35 +105,56 @@ public class CameraMovement : MonoBehaviour
         if (mouse > 0)
         {
 
-            if( mouseMoveThreshold < Vector3.Distance(currentMousePos, lastMousePos))
+            if (mouseMoveThreshold < Vector3.Distance(currentMousePos, lastMousePos))
             {
                 zoomFocalPoint = cam.ScreenToWorldPoint(currentMousePos);
 
                 lastMousePos = currentMousePos;
                 camPos = new Vector3(zoomFocalPoint.x, zoomFocalPoint.y, cam.transform.position.z);
-                
+
+
+               // Debug.Log("Zooming in");
             }
             else
             {
-                camPos = new Vector3(zoomFocalPoint.x, zoomFocalPoint.y, cam.transform.position.z);
-                
-            }
 
-            
-            
+                camPos = new Vector3(zoomFocalPoint.x, zoomFocalPoint.y, cam.transform.position.z);
+
+            }
+            cam.transform.position = Vector3.Lerp(cam.transform.position, camPos, camLerpSpeed * Time.deltaTime);
+            hasZoomedRecently = true;
+           // Debug.Log("Zoomed in");
+
         }
         else if( mouse < 0)
         {
-            cam.transform.position = camPos;
+            if(hasPanned)
+            {
+                zoomFocalPoint = cam.ScreenToWorldPoint(currentMousePos);
+                lastMousePos = currentMousePos;
+                camPos = new Vector3(zoomFocalPoint.x, zoomFocalPoint.y, cam.transform.position.z);
+
+                hasPanned = false;
+               // Debug.Log("Zooming out");
+            }
+            // cam.transform.position = camPos;
+            cam.transform.position = Vector3.Lerp(cam.transform.position, camPos, camLerpSpeed * Time.deltaTime);
+            hasZoomedRecently = true;
+           // Debug.Log("Zoomed out");
         }
 
-        if(cam.transform.position != camPos && mouseMoveThreshold >= Vector3.Distance(currentMousePos, lastMousePos))
+        if (!isPanning && cam.transform.position != camPos && mouseMoveThreshold >= Vector3.Distance(currentMousePos, lastMousePos))
         {
-            cam.transform.position = Vector3.Lerp(cam.transform.position, camPos, camLerpSpeed * Time.deltaTime);
+            if(currentMousePos == lastMousePos)
+            {
+                cam.transform.position = Vector3.Lerp(cam.transform.position, camPos, camLerpSpeed * Time.deltaTime);
+                //Debug.Log("In if statement");
+            }
+           
         }
         cam.transform.position = ClampCamera(cam.transform.position);
-        
-      
+
+       // Debug.Log("not zooming");
     }
 
     private Vector3 ClampCamera(Vector3 targetPosition)
